@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cronômetro Azul & Rosa</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      height: 100%;
+      background: #05040a;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      isolation: isolate;
+    }
+
+    .blob { position: absolute; width: 140vmin; height: 140vmin; top: 50%; left: 50%; transform: translate(-50%, -50%); filter: blur(60px) saturate(150%); opacity: 0.95; mix-blend-mode: screen; border-radius: 40%; will-change: transform, border-radius, opacity; }
+    .blob.blue { background: radial-gradient(circle at 30% 30%, #3aa0ff 0%, #1e64ff 30%, rgba(14,29,70,0.8) 60%, rgba(8,10,20,0.0) 100%); animation: floatBlue 18s ease-in-out infinite alternate; }
+    .blob.pink { background: radial-gradient(circle at 70% 70%, #ff9ad0 0%, #ff4fa3 28%, rgba(90,10,40,0.85) 60%, rgba(8,10,20,0.0) 100%); animation: floatPink 16s ease-in-out infinite alternate; opacity: 0.92; }
+    .noise { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0.08; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><filter id="a"><feTurbulence baseFrequency="0.8" numOctaves="1" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23a)" fill="black" opacity="0.15"/></svg>'); }
+
+    .content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; z-index: 4; }
+    .timer { font-size: clamp(2.5rem, 8vw, 8rem); letter-spacing: 2px; text-shadow: 0 6px 24px rgba(2, 6, 23, 0.7); }
+    .names { display: flex; gap: 2rem; margin-top: 2rem; font-size: clamp(2rem, 6vw, 5rem); font-weight: 700; text-shadow: 0 0 25px rgba(255,255,255,0.3); }
+    .name-pedro, .name-isabela { position: relative; }
+    .name-pedro { color: #5ab3ff; text-shadow: 0 0 30px #1e64ff; }
+    .name-isabela { color: #ff76c5; text-shadow: 0 0 30px #ff4fa3; -webkit-text-stroke: 2px #fff; text-stroke: 2px #fff; }
+
+    .vote-btn { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 10px; padding: 0.3rem 0.6rem; font-size: 1rem; border-radius: 8px; border: 2px solid white; background-color: rgba(0,0,0,0.5); color: white; cursor: pointer; }
+    .counter { margin-top: 0.5rem; font-size: 1.2rem; color: yellow; }
+
+    video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; display: none; z-index: 5; border-radius: 0; box-shadow: none; }
+
+    .play-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 6;
+      padding: 1rem 2rem;
+      font-size: 2rem;
+      color: white;
+      background-color: rgba(0,0,0,0.5);
+      border: 2px solid white;
+      border-radius: 12px;
+      cursor: pointer;
+      text-shadow: 0 0 10px black;
+    }
+
+    .floating-text {
+      position: absolute;
+      bottom: -50px;
+      width: 100%;
+      text-align: center;
+      font-size: 4rem;
+      font-weight: bold;
+      color: #ff76c5;
+      text-shadow: 0 0 30px #ff4fa3;
+      animation: floatUp 5s forwards;
+      z-index: 7;
+      white-space: pre-line;
+    }
+
+    @keyframes floatBlue { 0% { transform: translate(-55%, -45%) scale(1) rotate(-8deg); } 50% { transform: translate(-50%, -58%) scale(1.05) rotate(12deg); } 100% { transform: translate(-55%, -45%) scale(1) rotate(-8deg); } }
+    @keyframes floatPink { 0% { transform: translate(-45%, -55%) scale(1) rotate(6deg); } 50% { transform: translate(-50%, -50%) scale(1.1) rotate(-10deg); } 100% { transform: translate(-45%, -55%) scale(1) rotate(6deg); } }
+    @keyframes floatUp { from { bottom: -50px; opacity: 0; } to { bottom: 50%; opacity: 1; transform: translateY(-50%); } }
+
+    @media (prefers-reduced-motion: reduce) { .blob { animation: none; transform: translate(-50%, -50%); filter: blur(48px); } }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="blob blue"></div>
+    <div class="blob pink"></div>
+    <div class="noise"></div>
+    <div class="content" id="content">
+      <div id="timer" class="timer">--:--:--</div>
+      <div class="names">
+        <span class="name-pedro">Pedro
+          <button class="vote-btn" id="votePedro">Vote</button>
+          <div class="counter" id="counterPedro">0</div>
+        </span>
+        <span class="name-isabela">Isabela
+          <button class="vote-btn" id="voteIsabela">Vote</button>
+          <div class="counter" id="counterIsabela">0</div>
+        </span>
+      </div>
+    </div>
+    <video id="video" playsinline>
+      <source src="video.mp4" type="video/mp4">
+      Seu navegador não suporta a reprodução de vídeos.
+    </video>
+    <audio id="music" loop>
+      <source src="music.mp3" type="audio/mpeg">
+      Seu navegador não suporta a reprodução de áudio.
+    </audio>
+    <button id="playButton" class="play-button" style="display:none;">▶️ Play</button>
+  </div>
+
+  <script>
+    const endDate = new Date('2025-10-15T20:00:00');
+    const music = document.getElementById('music');
+    const video = document.getElementById('video');
+    const playButton = document.getElementById('playButton');
+
+    let votesPedro = 0;
+    let votesIsabela = 0;
+
+    document.getElementById('votePedro').addEventListener('click', () => {
+      votesPedro++;
+      document.getElementById('counterPedro').textContent = votesPedro;
+    });
+
+    document.getElementById('voteIsabela').addEventListener('click', () => {
+      votesIsabela++;
+      document.getElementById('counterIsabela').textContent = votesIsabela;
+    });
+
+    function showPlayButton() {
+      playButton.style.display = 'block';
+      playButton.addEventListener('click', () => {
+        video.play();
+        music.play();
+        playButton.style.display = 'none';
+
+        // Mostra texto "Isabela\nBem vinda" após 10 segundos
+        setTimeout(() => {
+          const floatingText = document.createElement('div');
+          floatingText.className = 'floating-text';
+          floatingText.textContent = 'Isabela\nBem vinda';
+          document.body.appendChild(floatingText);
+        }, 10000);
+      });
+    }
+
+    function updateTimer() {
+      const now = new Date();
+      const diff = endDate - now;
+
+      if (diff <= 0) {
+        clearInterval(interval);
+        document.getElementById('content').style.display = 'none';
+        video.style.display = 'block';
+        showPlayButton();
+        return;
+      }
+
+      const totalSeconds = Math.floor(diff / 1000);
+      const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+      const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+      const seconds = String(totalSeconds % 60).padStart(2, '0');
+
+      document.getElementById('timer').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+  </script>
+</body>
+</html>
