@@ -112,7 +112,7 @@
   </div>
 
   <script>
-    const endDate = new Date('2025-10-15T21:32:00');
+    const endDate = new Date('2025-10-16T20:00:00');
     const music = document.getElementById('music');
     const video = document.getElementById('video');
     const playButton = document.getElementById('playButton');
@@ -136,6 +136,7 @@
       localStorage.setItem('votesIsabela', votesIsabela);
     });
 
+    // Cronômetro e vídeo
     function showPlayButton() {
       playButton.style.display = 'block';
       playButton.addEventListener('click', () => {
@@ -143,13 +144,12 @@
         music.play();
         playButton.style.display = 'none';
 
-        // Mostra texto "Isabela\nBem vinda" após 10 segundos
         setTimeout(() => {
           const floatingText = document.createElement('div');
           floatingText.className = 'floating-text';
           floatingText.textContent = 'Bem vinda\nIsabela';
           document.body.appendChild(floatingText);
-        }, 17000);
+        }, 14000);
       });
     }
 
@@ -173,8 +173,17 @@
       document.getElementById('timer').textContent = `${hours}:${minutes}:${seconds}`;
     }
 
-    updateTimer();
     const interval = setInterval(updateTimer, 1000);
+
+    // Checar no carregamento se o cronômetro já zerou
+    const now = new Date();
+    if (now >= endDate) {
+      document.getElementById('content').style.display = 'none';
+      video.style.display = 'block';
+      showPlayButton();
+    } else {
+      updateTimer();
+    }
   </script>
 </body>
 </html>
